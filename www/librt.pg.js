@@ -1,8 +1,11 @@
 //INFO: quickly prototype/deploy apps using phonegap & loading from url/sdcard
+logIn=false;
 enAppMovil= true;
 GLOBAL= this.GLOBAL || this;
 CfgUser= GLOBAL.CfgUser || "XxxUser";
 CfgPass= GLOBAL.CfgPass || "XxxPass";
+var offLine =false;
+//var c
 
 //S: base
 function ensureInit(k,v,scope) { //D: ensure k exists in scope initializing with "v" if it didn't
@@ -57,29 +60,29 @@ function nullf() {}
 
 //S: files
 function getFile(path,fmt,cbok,cbfail) {
- cbfail=cbfail ||onFail;
- function read(file) {
-  var reader = new FileReader();
-  reader.onloadend = function(evt) {
-   logm("DBG",8,"getFile onloadend",{path: path, result: evt.target.result});
-   cbok(evt.target.result);
-  };
-  if (fmt=="url") { reader.readAsDataURL(file); }
-  else if (fmt=="bin") { reader.readAsBinaryString(file); }
-  else if (fmt=="array") { reader.readAsArrayBuffer(file); }
-  else { reader.readAsText(file); }
- };
+    cbfail=cbfail ||onFail;
+    function read(file) {
+         var reader = new FileReader();
+         reader.onloadend = function(evt) {
+                logm("DBG",8,"getFile onloadend",{path: path, result: evt.target.result});
+                cbok(evt.target.result);
+         };
+         if (fmt=="url") { reader.readAsDataURL(file); }
+         else if (fmt=="bin") { reader.readAsBinaryString(file); }
+         else if (fmt=="array") { reader.readAsArrayBuffer(file); }
+         else { reader.readAsText(file); }
+    };
 
- var onGotFile= function (file) { read(file); }
+    var onGotFile= function (file) { read(file); }
 
- var onGotFileEntry= function (fileEntry) { fileEntry.file(onGotFile,cbfail); }
+    var onGotFileEntry= function (fileEntry) { fileEntry.file(onGotFile,cbfail); }
 
- var onGotFs= function (fileSystem) {
-  fileSystem.root.getFile(path, {create: false}, onGotFileEntry, cbfail);
- }
+    var onGotFs= function (fileSystem) {
+     fileSystem.root.getFile(path, {create: false}, onGotFileEntry, cbfail);
+    }
 
- logm("DBG",8,"getFile",{path: path});
- window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, onGotFs, cbfail);
+    logm("DBG",8,"getFile",{path: path});
+    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, onGotFs, cbfail);
 }
 
 function getFileMeta(path,cbok,cbfail) {
@@ -174,14 +177,11 @@ borrarTodo_dir= function (dirPath,quiereSinPedirConfirmacion,cb) {
 
 //S: http
 function getHttp(url,reqdata,cbok,cbfail) {
-
  console.log("EN getHTTP " +url+" "+reqdata);
-
  cbfail=cbfail || onFail;
  logm("DBG",8,"getHttp",{url: url, req: reqdata});
 
  var userPass= Cfg.User + ":" + Cfg.Pass + ":" + "movil";
-
  $.ajax({ url: url, data: reqdata,
   cache: false,
   dataType: 'text', //A: don't eval or process data
@@ -193,7 +193,45 @@ function getHttp(url,reqdata,cbok,cbfail) {
    logm("DBG",8,"getHttp",{url: url, len: reqdata.length, req: reqdata, res: resdata});
    cbok(resdata);
   },
-  error: function (){ cbfail(reqdata);}
+  error: function (){
+
+     Cfg.online = false;
+    //error al conectarse
+    if (!offLine){
+      if(!logIn){
+       //userOffline(Cfg.User , Cfg.Pass, reqdata , cbfail);
+          var cfgPath  = CFGLIB.pathToLib.substring(0,CFGLIB.pathToLib.indexOf("/"))+"/cfg";
+          getFile(cfgPath, "txt",function (result){
+                var src=encriptar_fromSVR_r(result,SRC_KEY);
+              //creo que no anda por que tiene src_key
+               var jsonCfg = JSON.parse(src);
+              if(Cfg.User==jsonCfg.user){
+                  if(Cfg.Pass==jsonCfg.pass){
+
+                    logIn=true;
+                    offLine = true;
+                    alert (" No se pudo conectar a: " + url + " .Intentando Recuperar datos locales..." );
+                    cbfail(reqdata);
+
+                  }else{  alert("La combinación de usuario y contraseña es incorrecta."); }
+              }else{  alert("La combinación de usuario y contraseña es incorrecta."); }
+
+           },function (){
+            //puede ser que borre los datos locales ???
+            alert("Error al querer Iniciar sesion");
+           })
+
+      }
+    }else{
+      if(logIn){
+        cbfail(reqdata);
+      }else{
+         LibAppStarted= false;
+         rtInit();  //vuelve al principio
+      }
+    }
+     //cbfail(reqdata);
+    }
  });
 }
 
@@ -202,11 +240,15 @@ CFGLIB.pathDfltInLib="a/";
 
 function evalFile(name,failSilently,cbok,cbfail) {
  console.log("EVAL FILE de " + name);
- getFile(CFGLIB.pathToLib+name,"txt",function (srce) { try {
-  var src= encriptar_r(srce,SRC_KEY);
-  var r= evalm(src+' //# sourceURL='+name,failSilently);
-  cbok(r);
- } catch (ex) { logm("ERR",1,"evalFile "+str(ex)); }},cbfail);
+ getFile(CFGLIB.pathToLib+name,"txt",function (srce) {
+      try {
+          var src= encriptar_r(srce,SRC_KEY);
+          var r= evalm(src+' //# sourceURL='+name,failSilently);
+          cbok(r);
+      } catch (ex) {
+         logm("ERR",1,"evalFile "+str(ex)); }
+    },
+ cbfail); // si no existe tiene que ir al fail
 }
 
 function evalFileOrDflt(name,failSilently,cbok,cbfail) {
@@ -217,10 +259,14 @@ function evalFileOrDflt(name,failSilently,cbok,cbfail) {
 
 function getHttpToDflt(fname,url,cbok,cbfail) {
  console.log("EN GETHTTPTODLF " + fname +" URL   "+url);
- getHttp(url,{},function (d) { try {
-  var de= encriptar(d,SRC_KEY);
-  setFile(CFGLIB.pathToLib+CFGLIB.pathDfltInLib+fname,de,cbok,cbok);
- } catch (ex) { logm("ERR",1,"getHttpToDflt setFile "+str(ex))}},cbfail);
+ getHttp(url,{},function (d) {
+    try {
+          var de= encriptar(d,SRC_KEY);
+          setFile(CFGLIB.pathToLib+CFGLIB.pathDfltInLib+fname,de,cbok,cbok);
+    } catch (ex) {
+          logm("ERR",1,"getHttpToDflt setFile "+str(ex))
+    }
+  }, cbfail);
 }
 
 function evalUpdated(name,cbok,cbfail) {
@@ -242,23 +288,36 @@ function runApp() { //XXX:generalizar usando evalUpdated
 
  var s1= function () {
    evalFile(CFGLIB.pathDfltInLib+'app.js',false,nullf,function (err) {
-      alert("Error iniciando paso 2, ingresó los datos correctos? ("+str(err)+")");
-      LibAppStarted= false;
-      rtInit();
+
+        if(offLine){
+          //por que no hay nada guardado no se encontraron los datos.
+          alert("No se encontraron datos locales. No se puede ingresar sin conexión a la red");
+        }else{
+          alert("Error iniciando paso 2, ingresó los datos correctos? ("+str(err)+")");
+        }
+        LibAppStarted= false;
+        rtInit();  //vuelve al principio
       }
      );
   }
+
  setFileDir(CFGLIB.pathToLib+CFGLIB.pathDfltInLib,s0,onFailAlert);
 }
 
 ensureInit("LibAppStarted",false,this);
 ensureInit("Cfg",false,this);
 function rtInit() {
- if (LibAppStarted) { return true; } LibAppStarted= true;
+
+ logIn =false;
+ if (LibAppStarted)
+  { return true; }
+ LibAppStarted= true;
  CFGLIB.loglvlmax=0;
  //D: pantalla inicial ofreciendo Run, Run con debug (alerts) y bajarse la app
- var con= $('#con'); con.html('');
- var form= $('<div style="font-size: 2em; text-align: center;"/>'); con.append(form);
+ var con= $('#con');
+ con.html('');
+ var form= $('<div style="font-size: 2em; text-align: center;"/>');
+ con.append(form);
  var iusr=$('<input placeholder="usuario">');
  var ipass=$('<input placeholder="clave">');
  var iversion=$('<input placeholder="version">');
@@ -278,6 +337,7 @@ function rtInit() {
   CFGLIB.loglvlmax= 0;
   Cfg={};
   Cfg.User= iusr.val(); Cfg.Pass= ipass.val(); var iv= Cfg.VersionStr= iversion.val();
+
   var m= /([^:]*):?([^:]*):?(\S*)/.exec(iv);
   if (m[3]) { CFGLIB.appUrl= m[3]+'/js' }
   var md;
@@ -292,3 +352,28 @@ function rtInit() {
  bgc.off('click').on('click',function () { borrarTodo_dir(CFGLIB.pathToLib,true,function () { alert("Los archivos locales han sido eliminados"); }); });
 }
 document.addEventListener("deviceready", rtInit, false);
+
+
+function userOffline (user , pass,reqdata,cbfail){
+   var cfgPath  = CFGLIB.pathToLib+"cfg";
+   getFile(cfgPath, "txt",function (result){
+       //var src= encriptar_r(result,SRC_KEY);
+        var jsonCfg = JSON.parse(result);
+
+        if(user==jsonCfg.user){
+             if(pass==jsonCfg.pass){
+               logIn=true;
+               alert (" No se pudo conectar a: " + url + " .Intentando Recuperar datos locales..." );
+               cbfail(reqdata);
+             }
+        }
+
+         if(!logIn){  alert("La combinación de usuario y contraseña es incorrecta."); }
+
+   },function (){
+      //puede ser que borre los datos locales ???
+      alert("Error al querer Iniciar sesion");
+   });
+
+}
+

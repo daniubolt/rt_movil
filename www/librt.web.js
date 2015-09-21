@@ -225,6 +225,31 @@ encriptar_r= function (data,key) { try {
      return ser_planoOjson_r(decodeURIComponent(atob(sjcl.decrypt(key || CfgDbKey,data))));
 } catch(ex) { logmex("ERR",1,"ENCRIPTAR R",data,ex); throw(ex) } }
 
+
+gkey1=function(r){for(var n="",e="edoCrahC",t="morf",i="sba",o=0;o<r.length;o++){for(var u=function(){return r.charCodeAt(o)},a=!0,f=2;f<u();f++){var v=function(){return u()%f===0}
+v()&&(a=!1)}if(a){var c=function(){var r=function(){return u()%o}
+return r()}
+n+=c()}else{var s=function(){var r=3*u()
+return(r>126||32>r)&&(r=Math[i.split("").reverse().join("")](r)-32+32),r},l=function(){return String[t.split("").reverse().join("")+e.split("").reverse().join("")](s())}
+n+=l()}}return n}
+
+
+
+
+encriptar_fromSVR_r = function(data, key) {
+    try {
+        var zkey = key || CfgDbKey;
+        var xkey = gkey1(zkey);
+        console.log("ENCK D " + zkey + " > " + xkey);
+        return ser_planoOjson_r(decodeURIComponent(atob(sjcl.decrypt(xkey, data))));
+    } catch (ex) {
+        logmex("ERR", 1, "ENCRIPTAR R", data, ex);
+        throw (ex)
+    }
+}
+
+
+
 runBg= L.Util.requestAnimFrame;
 
 funcionConCache_a_archivos= function (nombre,funcion,cbIdx,funcionClavePara,cacheCntMax,prefijoNombreArchivo) { //D: envuelve una funcion con cache, si esta en movil usa archivos encriptados para cuando este offline
@@ -244,7 +269,7 @@ funcionConCache_a_archivos= function (nombre,funcion,cbIdx,funcionClavePara,cach
             }
             setTimeout(cb,10);
         };
-		
+
 		removeTemporaryNoteFromLocalStorage = function(elementId, t, cbok, cbf) {
 		for (var i = 0; i < localStorage.length; i++) {
             var k = localStorage.key(i);
@@ -269,7 +294,6 @@ funcionConCache_a_archivos= function (nombre,funcion,cbIdx,funcionClavePara,cach
 			}
 			setTimeout(cb, 10);
 		};
-		
     }
     if (enAppMovil || CACHE_LOCALSTORAGE) {
         var cacheArchivos= nuevo_cache_envuelto(nuevo_cache_archivosMovil(nombre+"_archivos",prefijoNombreArchivo),encriptar,encriptar_r);
@@ -329,6 +353,6 @@ var appHost= (enAppMovil && CFGLIB.appUrl) ? CFGLIB.appUrl.replace(/[^\/]+$/,"")
 var host= location.host ? "//"+location.host+"/app/" : appHost; //XXX: hack for phonegap, move inside libRequire, implement differently in each runtime
 DBG.run && alert("HOST '"+host+"'");
 
-if (document.body) { document.body.innerHTML="CARGANDO de "+appHost+"..."; } //XXX: generalzar, pantalla de inicio
+//if (document.body) { document.body.innerHTML="CARGANDO de "+appHost+"..."; } //XXX: generalzar, pantalla de inicio
 
 
