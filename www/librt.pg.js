@@ -224,7 +224,7 @@ function getHttp(url,reqdata,cbok,cbfail) {
 
                  if(!logIn){
                   LibAppStarted=false;
-                  rtInit();
+                  //rtInit();
                  }
 
            },function (){
