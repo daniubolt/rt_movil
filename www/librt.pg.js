@@ -223,7 +223,7 @@ function getHttp(url,reqdata,cbok,cbfail) {
                }
 
                  if(!logIn){
-                  LibAppStarted=false;
+                  //LibAppStarted=false;
                   rtInit();
                  }
 
