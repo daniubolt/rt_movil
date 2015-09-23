@@ -223,8 +223,8 @@ function getHttp(url,reqdata,cbok,cbfail) {
                }
 
                  if(!logIn){
-                  LibAppStarted=false;
-                  //rtInit();
+                  //LibAppStarted=false;
+                  rtInit();
                  }
 
            },function (){
