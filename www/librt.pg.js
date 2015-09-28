@@ -296,13 +296,19 @@ function evalUpdated(name,cbok,cbfail) {
 //S: Borrar archivos
 function removeFile(path, cbok, cbfail){
 	cbfail=cbfail ||onFail;
+    
+    alert("PATH en removeFail: " + path);
 	
 	function gotRemoveFileEntry(fileEntry){
 	    console.log(fileEntry);
 	    fileEntry.remove(cbok, cbfail);
 	}
 	
-	function fail(error) {
+    function cbok(entry) {
+    alert("Se elimino el archivo satisfactoriamente");
+}
+    
+	function cbfail(error) {
 	    alert('Error borrando archivo: ' + error.code);
 	}
 
