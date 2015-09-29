@@ -294,27 +294,43 @@ function evalUpdated(name,cbok,cbfail) {
 }
 
 //S: Borrar archivos
-function removeFile(path, cbok, cbfail){
+/*function removeFile(path, cbok, cbfail){
 	cbfail=cbfail ||onFail;
-    
-    alert("PATH en removeFail: " + path);
 	
 	function gotRemoveFileEntry(fileEntry){
 	    console.log(fileEntry);
 	    fileEntry.remove(cbok, cbfail);
 	}
 	
-    function cbok(entry) {
-    alert("Se elimino el archivo satisfactoriamente");
-}
-    
-	function cbfail(error) {
+	function fail(error) {
 	    alert('Error borrando archivo: ' + error.code);
 	}
 
 	fileSystem.root.getFile(path, {create: false, exclusive: false}, gotRemoveFileEntry, cbfail);
 
+}*/
+
+
+function removeFile(path, cbok, cbfail){
+    console.log("remove file");
+    var relativeFilePath = path;
+    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fileSystem){
+        fileSystem.root.getFile(relativeFilePath, {create:false}, function(fileEntry){
+            fileEntry.remove(function(file){
+                console.log("File removed!");
+            },function(){
+                console.log("error deleting the file " + error.code);
+                });
+            },function(){
+                console.log("file does not exist");
+            });
+        },function(evt){
+            console.log(evt.target.error.code);
+    });
+
 }
+
+
 
 //S: init
 CFG_APPURL_DFLT= 'https://192.168.184.187:8443/app';
