@@ -96,7 +96,6 @@ function getFileMeta(path,cbok,cbfail) {
 }
 
 function keysFile(dirPath,cb) {
- alert("keysFile - dirPath = " + dirPath );
  window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, fsSuccess, onFail);
 
  function fsSuccess(fs) {
@@ -294,23 +293,6 @@ function evalUpdated(name,cbok,cbfail) {
 }
 
 //S: Borrar archivos
-/*function removeFile(path, cbok, cbfail){
-	cbfail=cbfail ||onFail;
-	
-	function gotRemoveFileEntry(fileEntry){
-	    console.log(fileEntry);
-	    fileEntry.remove(cbok, cbfail);
-	}
-	
-	function fail(error) {
-	    alert('Error borrando archivo: ' + error.code);
-	}
-
-	fileSystem.root.getFile(path, {create: false, exclusive: false}, gotRemoveFileEntry, cbfail);
-
-}*/
-
-
 function removeFile(path, cbok, cbfail){
     console.log("remove file");
     var relativeFilePath = path;
@@ -327,10 +309,19 @@ function removeFile(path, cbok, cbfail){
         },function(evt){
             console.log(evt.target.error.code);
     });
-
 }
 
-
+//S: Lee archivo local almacenada en particular sin la funcionalidad de caché
+function readLocalFile(path,params,cbok,cbfail) {
+    
+    getFile(path, "txt",
+            function(result) {cbok(result);},
+            function(err) {
+                logm("DBG", 1, "syncSubirCadaNota - getFile Error, no trae nota - Err:", err);
+                cbfail(params);
+               }
+          );
+}
 
 //S: init
 CFG_APPURL_DFLT= 'https://192.168.184.187:8443/app';
