@@ -319,7 +319,18 @@ function readLocalFile(path,params,cbok,cbfail) {
             function(err) {
                 logm("DBG", 1, "syncSubirCadaNota - getFile Error, no trae nota - Err:", err);
                 alert("No se encontro el archivo en pm/, se buscará en pm/pg/cache/note_: " + err); 
-                cbfail(params);
+                //cbfail(params);
+                vecDatos = path.split("_");
+                id_elemento = vecDatos[1];
+                newPath = "pm/pg/cache/note_" + id_elemento;
+                getFile(newPath, "txt",
+                    function(result) {cbok(result);},
+                    function(err) {
+                        logm("DBG", 1, "syncSubirCadaNota - getFile Error, no trae nota - Err:", err);
+                        alert("ERROR: No se encontro el archivo en pm/pg/cache/note_: " + err); 
+                        cbfail(params);
+                       }
+                  );
                }
           );
 }
