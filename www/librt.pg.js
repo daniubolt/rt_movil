@@ -322,7 +322,7 @@ function readLocalFile(path,params,cbok,cbfail) {
                 //cbfail(params);
                 vecDatos = path.split("_");
                 id_elemento = vecDatos[1];
-                newPath = "pm/pg/cache/note_5f_note_5f_" + id_elemento;
+                newPath = "pm/pg/cache/note_/note_5f_note_5f_" + id_elemento;
                 getFile(newPath, "txt",
                     function(result) {cbok(result);},
                     function(err) {
