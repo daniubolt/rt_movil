@@ -366,9 +366,9 @@ function rtInit() {
  con.html('');
  var form= $('<div style="font-size: 2em; text-align: center;"/>');
  con.append(form);
- var iusr=$('<input placeholder="usuario">');
- var ipass=$('<input placeholder="clave">');
- var iversion=$('<input placeholder="version">');
+ var iusr=$('<input placeholder="usuario" value="testParqueChas">');
+ var ipass=$('<input  type="password" placeholder="clave" value="asd123">');
+ var iversion=$('<input placeholder="version" value="::https://10.70.251.40:8444/app">');
  var bgo=$('<button>Iniciar</buton>');
  var bgx=$('<button>Salir</buton>');
  var bgc=$('<a href="#">(borrar datos locales)</a>');
