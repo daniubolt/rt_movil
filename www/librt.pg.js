@@ -60,29 +60,29 @@ function nullf() {}
 
 //S: files
 function getFile(path,fmt,cbok,cbfail) {
-    cbfail=cbfail ||onFail;
-    function read(file) {
-         var reader = new FileReader();
-         reader.onloadend = function(evt) {
-                logm("DBG",8,"getFile onloadend",{path: path, result: evt.target.result});
-                cbok(evt.target.result);
-         };
-         if (fmt=="url") { reader.readAsDataURL(file); }
-         else if (fmt=="bin") { reader.readAsBinaryString(file); }
-         else if (fmt=="array") { reader.readAsArrayBuffer(file); }
-         else { reader.readAsText(file); }
-    };
+ cbfail=cbfail ||onFail;
+ function read(file) {
+   var reader = new FileReader();
+   reader.onloadend = function(evt) {
+    logm("DBG",8,"getFile onloadend",{path: path, result: evt.target.result});
+    cbok(evt.target.result);
+   };
+   if (fmt=="url") { reader.readAsDataURL(file); }
+   else if (fmt=="bin") { reader.readAsBinaryString(file); }
+   else if (fmt=="array") { reader.readAsArrayBuffer(file); }
+   else { reader.readAsText(file); }
+ };
 
-    var onGotFile= function (file) { read(file); }
+ var onGotFile= function (file) { read(file); }
 
-    var onGotFileEntry= function (fileEntry) { fileEntry.file(onGotFile,cbfail); }
+ var onGotFileEntry= function (fileEntry) { fileEntry.file(onGotFile,cbfail); }
 
-    var onGotFs= function (fileSystem) {
-     fileSystem.root.getFile(path, {create: false}, onGotFileEntry, cbfail);
-    }
+ var onGotFs= function (fileSystem) {
+  fileSystem.root.getFile(path, {create: false}, onGotFileEntry, cbfail);
+ }
 
-    logm("DBG",8,"getFile",{path: path});
-    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, onGotFs, cbfail);
+ logm("DBG",8,"getFile",{path: path});
+ window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, onGotFs, cbfail);
 }
 
 function getFileMeta(path,cbok,cbfail) {
@@ -133,8 +133,8 @@ function setFile(path,data,cbok,cbfail) {
   function gotFileWriter(writer) {
   logm("DBG",9,"setFile write",[path]); try {
    writer.onwriteend = function(evt) {
-     writer.onwriteend = cbok;
-     writer.write(data);
+  writer.onwriteend = cbok;
+  writer.write(data);
    };
    writer.truncate(0);
   } catch (ex) { logm("ERR",7,"setFile write",[path,ex.message]); }
@@ -144,6 +144,7 @@ function setFile(path,data,cbok,cbfail) {
 function setFileBin(path,data,cbok,cbfail) { setFile(path,strToBin(data),cbok,cbfail); }
 
 function setFileDir(path,cbok,cbfail) {
+
  cbfail=cbfail ||onFail;
  var parts= path.split("/");
  var i= 0;
@@ -151,6 +152,7 @@ function setFileDir(path,cbok,cbfail) {
  window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, onRequestFileSystemSuccess, cbfail);
 
  function onRequestFileSystemSuccess(fileSystem) {
+
   if (parts.length==0) { cbok(fileSystem.root); }
   else {	createPart(fileSystem.root) }
  }
@@ -183,12 +185,11 @@ borrarTodo_dir= function (dirPath,quiereSinPedirConfirmacion,cb) {
 
 //S: http
 function getHttp(url,reqdata,cbok,cbfail) {
- console.log("EN getHTTP " +url+" "+reqdata);
  cbfail=cbfail || onFail;
  logm("DBG",8,"getHttp",{url: url, req: reqdata});
 
  var userPass= Cfg.User + ":" + Cfg.Pass + ":" + "movil";
- $.ajax({ url: url, data: reqdata,
+ $.ajax({ url: url, data: reqdata, timeout : 60000,
   cache: false,
   dataType: 'text', //A: don't eval or process data
   headers: { "Authorization": "Basic " + btoa(userPass ) },
@@ -201,54 +202,53 @@ function getHttp(url,reqdata,cbok,cbfail) {
    cbok(resdata);
   },
   error: function (){
+  Cfg.online = false;
+ //error al conectarse
+ if (!offLine){
+   offLine = true;
+   if(!logIn){
+    var cfgPath  = CFGLIB.pathToLib.substring(0,CFGLIB.pathToLib.indexOf("/"))+"/cfg";
+    getFile(cfgPath, "txt",function (result){
+    var src=encriptar_fromSVR_r(result,SRC_KEY);
+     //creo que no anda por que tiene src_key
+      var jsonCfg = JSON.parse(src);
+     if(Cfg.User==jsonCfg.user){
+      if(Cfg.Pass==jsonCfg.pass){
 
-     Cfg.online = false;
-    //error al conectarse
-    if (!offLine){
-      offLine = true;
-      if(!logIn){
-          var cfgPath  = CFGLIB.pathToLib.substring(0,CFGLIB.pathToLib.indexOf("/"))+"/cfg";
-          getFile(cfgPath, "txt",function (result){
-                var src=encriptar_fromSVR_r(result,SRC_KEY);
-              //creo que no anda por que tiene src_key
-               var jsonCfg = JSON.parse(src);
-              if(Cfg.User==jsonCfg.user){
-                  if(Cfg.Pass==jsonCfg.pass){
+     logIn=true;
+     alert (" No se pudo conectar a: " + url + " .Intentando Recuperar datos locales..." );
+     cbfail(reqdata);
 
-                    logIn=true;
-                    alert (" No se pudo conectar a: " + url + " .Intentando Recuperar datos locales..." );
-                    cbfail(reqdata);
-
-                  }else
-                   {
-                     alert("La combinación de usuario y contraseña es incorrecta.");
-                   }
-              }
-               else{
-                   alert("La combinación de usuario y contraseña es incorrecta.");
-               }
-
-                 if(!logIn){
-                  //LibAppStarted=false;
-                  rtInit();
-                 }
-
-           },function (){
-            //puede ser que no tenga el cfg
-            alert("Error al querer Iniciar sesion. Para ingresar por primera vez debe estar conectado a la red. ");
-           })
-
+      }else
+       {
+      alert("La combinación de usuario y contraseña es incorrecta.");
+       }
+     }
+      else{
+       alert("La combinación de usuario y contraseña es incorrecta.");
       }
-    }else{
-      if(logIn){
-        cbfail(reqdata);
-      }else{
-         LibAppStarted= false;
-         rtInit();  //vuelve al principio
-      }
-    }
-     //cbfail(reqdata);
-    }
+
+     if(!logIn){
+      //LibAppStarted=false;
+      rtInit();
+     }
+
+     },function (){
+   //puede ser que no tenga el cfg
+   alert("Error al querer Iniciar sesion. Para ingresar por primera vez debe estar conectado a la red. ");
+     })
+
+   }
+ }else{
+   if(logIn){
+  cbfail(reqdata);
+   }else{
+   LibAppStarted= false;
+   rtInit();  //vuelve al principio
+   }
+ }
+  //cbfail(reqdata);
+ }
  });
 }
 
@@ -258,31 +258,36 @@ CFGLIB.pathDfltInLib="a/";
 function evalFile(name,failSilently,cbok,cbfail) {
  console.log("EVAL FILE de " + name);
  getFile(CFGLIB.pathToLib+name,"txt",function (srce) {
-      try {
-          var src= encriptar_r(srce,SRC_KEY);
-          var r= evalm(src+' //# sourceURL='+name,failSilently);
-          cbok(r);
-      } catch (ex) {
-         logm("ERR",1,"evalFile "+str(ex)); }
-    },
+   try {
+    var src= encriptar_r(srce,SRC_KEY);
+    var r= evalm(src+' //# sourceURL='+name,failSilently);
+    cbok(r);
+   } catch (ex) {
+   logm("ERR",1,"evalFile "+str(ex)); }
+ },
  cbfail); // si no existe tiene que ir al fail
 }
 
 function evalFileOrDflt(name,failSilently,cbok,cbfail) {
- var s0= function () { evalFile(name,failSilently,cbok,s1f); }
- var s1f= function () { console.log("EN S1F AAAA  eval de : " +CFGLIB.pathDfltInLib+name);evalFile(CFGLIB.pathDfltInLib+name,failSilently,cbok,cbfail); }
+ var s0= function () {
+         evalFile(name,failSilently,cbok,s1f);
+       }
+ var s1f= function () {
+   console.log("EN S1F AAAA  eval de : " +CFGLIB.pathDfltInLib+name);
+   evalFile(CFGLIB.pathDfltInLib+name,failSilently,cbok,cbfail);
+ }
  s0();
 }
 
 function getHttpToDflt(fname,url,cbok,cbfail) {
  console.log("EN GETHTTPTODLF " + fname +" URL   "+url);
  getHttp(url,{},function (d) {
-    try {
-          var de= encriptar(d,SRC_KEY);
-          setFile(CFGLIB.pathToLib+CFGLIB.pathDfltInLib+fname,de,cbok,cbok);
-    } catch (ex) {
-          logm("ERR",1,"getHttpToDflt setFile "+str(ex))
-    }
+ try {
+    var de= encriptar(d,SRC_KEY);
+    setFile(CFGLIB.pathToLib+CFGLIB.pathDfltInLib+fname,de,cbok,cbok);
+ } catch (ex) {
+    logm("ERR",1,"getHttpToDflt setFile "+str(ex))
+ }
   }, cbfail);
 }
 
@@ -294,90 +299,116 @@ function evalUpdated(name,cbok,cbfail) {
 
 //S: Borrar archivos
 function removeFile(path, cbok, cbfail){
-    console.log("remove file");
-    var relativeFilePath = path;
-    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fileSystem){
-        fileSystem.root.getFile(relativeFilePath, {create:false}, function(fileEntry){
-            fileEntry.remove(function(file){
-                console.log("File removed!");
-            },function(){
-                console.log("error deleting the file " + error.code);
-                });
-            },function(){
-                console.log("file does not exist");
-            });
-        },function(evt){
-            console.log(evt.target.error.code);
+ console.log("remove file");
+ var relativeFilePath = path;
+ window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fileSystem){
+  fileSystem.root.getFile(relativeFilePath, {create:false}, function(fileEntry){
+   fileEntry.remove(function(file){
+    console.log("File removed!");
+   },function(){
+    console.log("error deleting the file " + error.code);
     });
+   },function(){
+    console.log("file does not exist");
+   });
+  },function(evt){
+   console.log(evt.target.error.code);
+ });
 }
 
 //S: Lee archivo local almacenada en particular sin la funcionalidad de caché
 function readLocalFile(path,params,cbok,cbfail) {
-    
-    getFile(path, "txt",
-            function(result) {cbok(result);},
-            function(err) {
-                logm("DBG", 1, "syncSubirCadaNota - getFile Error, no trae nota - Err:", err);
-                cbfail(params);
-               }
-          );
+
+ getFile(path, "txt",
+   function(result) {cbok(result);},
+   function(err) {
+    logm("DBG", 1, "syncSubirCadaNota - getFile Error, no trae nota - Err:", err);
+    cbfail(params);
+      }
+    );
 }
 
 //S: init
 CFG_APPURL_DFLT= 'https://192.168.184.187:8443/app';
 CFGLIB.appUrl= CFG_APPURL_DFLT;
 SRC_KEY= "18273hjsjacjhq83qq3dhsjdhdy38znddj";
-function runApp() { //XXX:generalizar usando evalUpdated
+function runApp() {
+//XXX:generalizar usando evalUpdated
  console.log("RUN APP "+CFGLIB.appUrl);
  logm("DBG",1,"RUN APP "+ser_json(Cfg)+" "+ser_json(CFGLIB));
  var s0= function () {
-    getHttpToDflt('app.js',CFGLIB.appUrl,s1,s1);
+ getHttpToDflt('app.js',CFGLIB.appUrl,s1,s1);
    }
 
  var s1= function () {
    evalFile(CFGLIB.pathDfltInLib+'app.js',false,nullf,function (err) {
 
-        if(offLine){
-          //por que no hay nada guardado no se encontraron los datos.
-          alert("No se encontraron datos locales. No se puede ingresar sin conexión a la red");
-        }else{
-          alert("Error iniciando paso 2, ingresó los datos correctos? ("+str(err)+")");
-        }
-        LibAppStarted= false;
-        rtInit();  //vuelve al principio
-      }
-     );
+  if(offLine){ //A: por que no hay nada guardado no se encontraron los datos.
+    alert("No se encontraron datos locales. No se puede ingresar sin conexión a la red");
+  }else{
+    alert("Error iniciando paso 2, ingresó los datos correctos? ("+str(err)+")");
   }
-
+  LibAppStarted= false;
+  rtInit();  //vuelve al principio
+   }
+  );
+  }
  setFileDir(CFGLIB.pathToLib+CFGLIB.pathDfltInLib,s0,onFailAlert);
 }
 
 ensureInit("LibAppStarted",false,this);
 ensureInit("Cfg",false,this);
+
 function rtInit() {
+
  offLine=false;
  logIn =false;
  if (LibAppStarted)
   { return true; }
  LibAppStarted= true;
  CFGLIB.loglvlmax=0;
- //D: pantalla inicial ofreciendo Run, Run con debug (alerts) y bajarse la app
+ versionStr = {User:"testParqueChas",Pass:"asd123",appUrl:"https://10.70.251.40:8444/app"};
+
+  //D: pantalla inicial ofreciendo Run, Run con debug (alerts) y bajarse la app
  var con= $('#con');
  con.html('');
- var form= $('<div style="font-size: 2em; text-align: center;"/>');
+ var form= $('<div class="form"> ');
  con.append(form);
- var iusr=$('<input placeholder="usuario" value="testParqueChas">');
- var ipass=$('<input  type="password" placeholder="clave" value="asd123">');
- var iversion=$('<input placeholder="version" value="::https://10.70.251.40:8444/app">');
- var bgo=$('<button>Iniciar</buton>');
- var bgx=$('<button>Salir</buton>');
- var bgc=$('<a href="#">(borrar datos locales)</a>');
- form.append(iusr).append("<br><br>");
- form.append(ipass).append("<br><br>");
- form.append(iversion).append("<br><br><br>");
- form.append(bgo).append("<br><br>");
- form.append(bgx).append("<br><br><br>");
- form.append(bgc);
+ var iusr=$('<input class="form-control input-lg "  placeholder="usuario" value="">');
+ var ipass=$('<input class="form-control input-lg " type="password" placeholder="clave" value="">');
+ var iversion=$('<input class="form-control  input-lg "  placeholder="version">');
+ var div = $('<div style ="margin: auto">');
+ var bgo=$('<button class="btn btn-primary btn-lg btn-block">Iniciar</buton>');
+ var bgx=$('<button class="btn btn-primary btn-lg btn-block">Salir</buton>');
+ var bgc=$('<a class="btn btn-link btn-lg btn-block" href="#">(borrar datos locales)</a>');
+ form.append(iusr).append("<br>");
+ form.append(ipass).append("<br>");
+ form.append(iversion).append("<br>");
+ form.append(div);
+ div.append(bgo);
+ div.append(bgx).append("<br><br>");
+ div.append(bgc);
+
+	//XXX:QUITAR SOLO PARA PRUEBAS DESDE ACA {
+ var tPal=$('<button class="btn btn-success btn-lg" type="button">Palermo</buton>');
+ var tPar=$('<button class="btn btn-success btn-lg" type="button">Parque Chas</buton>'); 
+ div.append("<br><br>");
+ div.append(tPal);
+ div.append(tPar)
+
+ tPal.on('click',function(){
+  versionStr.User = "testPalermo";
+  versionStr.Pass = "asd123";
+  iversion.val(ser_json(versionStr));
+ });
+
+ tPar.on('click',function(){
+  versionStr.User = "testParqueChas";
+  versionStr.Pass = "asd123";
+  iversion.val(ser_json(versionStr));
+ });
+
+	//XXX:QUITAR SOLO PARA PRUEBAS HASTA ACA }
 
  bgo.off('click').on('click',function () { try {
   alert("Iniciando");
@@ -386,11 +417,20 @@ function rtInit() {
   Cfg={};
   Cfg.User= iusr.val(); Cfg.Pass= ipass.val(); var iv= Cfg.VersionStr= iversion.val();
 
-  var m= /([^:]*):?([^:]*):?(\S*)/.exec(iv);
-  if (m[3]) { CFGLIB.appUrl= m[3]+'/js' }
-  var md;
-  if (md= /d(\d?)/.exec(m[2])) { CFGLIB.loglvlmax= parseInt(md[1])||9; }
-  CFGLIB.appUrl+= m[1];
+	if (/\S+/.exec(iv)) { //A: hay parametros en version
+	  var m= /^\s*(\{.*)/.exec(iv);
+		if (m) { try { //A: tiene forma de json
+			var vopts= ser_json_r(m[1]);
+			for (var k in vopts) { CFGLIB[k]= vopts[k]; Cfg[k]= vopts[k]; }
+			//A: pisamos los defaults con el valor que nos pasaron
+			alert("CFGLIB: "+ser_json(CFGLIB));
+			alert("Cfg: "+ser_json(Cfg));
+		} catch (ex) { alert("version formato no valido, usando defaults"); iv=""; } }
+		else { CFGLIB.appUrl= iv }
+	}
+
+	CFGLIB.appUrl+="/js"; //XXX: coordinar con webMapView, el que devuelve el js y no el html
+
   //XXX:SEC: cambiar PathToLib segun version para que no se pueda bajar una version de un host y acceder a los datos de otra? relacion con encriptar datos bajados?
   //alert("Cfg "+ser_json(CFGLIB));
   runApp(); //XXX: que hacemos si no se pudo iniciar app? hay que volver aca :)
@@ -399,5 +439,8 @@ function rtInit() {
  bgx.off('click').on('click',function () { navigator.app.exitApp(); })
  bgc.off('click').on('click',function () { borrarTodo_dir(CFGLIB.pathToLib,true,function () { alert("Los archivos locales han sido eliminados"); }); });
 }
+
 document.addEventListener("deviceready", rtInit, false);
+
+
 
